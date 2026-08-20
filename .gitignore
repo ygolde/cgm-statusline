@@ -1,0 +1,11 @@
+# Private - never commit. NOTE: .gitignore does NOT support trailing comments;
+# a pattern like "config.json  # why" is a literal string and matches nothing.
+config.json
+cgm.json
+cgm.json.tmp
+style
+*.log
+venv/
+__pycache__/
+*.pyc
+com.claude-cgm.plist

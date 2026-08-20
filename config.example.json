@@ -1,0 +1,5 @@
+{
+  "username": "your-dexcom-username-or-email",
+  "region": "us",
+  "keychain_service": "claude-cgm-dexcom"
+}
