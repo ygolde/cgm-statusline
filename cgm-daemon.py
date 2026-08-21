@@ -77,11 +77,24 @@ def sparkline(series: list[tuple[int, int]], now: int, minutes: int) -> str:
     # to 5 min old), which renders as a phantom dropout on every single draw.
     # Genuine staleness is already carried by the age/dim logic downstream.
     end = max(e for e, _ in series)
-    buckets: dict[int, int] = {}
+    # ROUND to the nearest slot, never floor. Dexcom stamps readings a second
+    # or two either side of the 5-minute grid, so a reading 899s back floors
+    # into its neighbour's slot: the two collide, one value is lost, and the
+    # slot they vacated renders as a phantom dropout. Rounding absorbs up to
+    # +/-150s of jitter, which is far more than the sensor ever produces.
+    best: dict[int, tuple[int, int]] = {}      # idx -> (distance, value)
     for epoch, value in series:
-        idx = slots - 1 - int((end - epoch) // READING_INTERVAL)
-        if 0 <= idx < slots:
-            buckets[idx] = value
+        offset = end - epoch
+        steps = round(offset / READING_INTERVAL)
+        idx = slots - 1 - steps
+        if not 0 <= idx < slots:
+            continue
+        # A genuine collision (a duplicate or backfilled reading) keeps
+        # whichever reading actually sits closest to the slot it claims.
+        dist = abs(offset - steps * READING_INTERVAL)
+        if idx not in best or dist < best[idx][0]:
+            best[idx] = (dist, value)
+    buckets = {i: v for i, (_, v) in best.items()}
 
     present = list(buckets.values())
     if not present:
